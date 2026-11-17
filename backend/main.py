@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 import db, engine
-from data import AIRPORTS, EVENT_TYPES, WEATHER_PRESETS
+from data import LOCATIONS, EVENT_TYPES, WEATHER_PRESETS
 
 log = logging.getLogger("airline")
 logging.basicConfig(level=logging.INFO)
@@ -24,10 +24,10 @@ INDEX = Path(__file__).resolve().parent.parent / "index.html"
 
 def fetch_weather() -> str:
     """Blocking call to Open-Meteo (free, no key). Returns a short status message."""
-    codes = list(AIRPORTS)
+    codes = list(LOCATIONS)
     params = {
-        "latitude": ",".join(str(AIRPORTS[c]["lat"]) for c in codes),
-        "longitude": ",".join(str(AIRPORTS[c]["lon"]) for c in codes),
+        "latitude": ",".join(str(LOCATIONS[c]["lat"]) for c in codes),
+        "longitude": ",".join(str(LOCATIONS[c]["lon"]) for c in codes),
         "current": "temperature_2m,precipitation,snowfall,weather_code,wind_speed_10m,wind_gusts_10m,visibility",
         "wind_speed_unit": "kmh",
     }
@@ -42,7 +42,7 @@ def fetch_weather() -> str:
                 "temp": c["temperature_2m"], "precip": c["precipitation"], "snow": c["snowfall"],
                 "code": c["weather_code"], "wind": c["wind_speed_10m"], "gust": c["wind_gusts_10m"],
                 "vis": c["visibility"]}, live=True)
-        msg = f"ingested live weather for {len(codes)} airports"
+        msg = f"ingested live weather for {len(codes)} locations"
     except Exception as e:  # network down etc. -> keep previous data; engine falls back to calm
         msg = f"weather ingest failed: {e}"
         log.warning(msg)
@@ -55,10 +55,11 @@ def snapshot() -> dict:
     events = db.get_events()
     weather = db.get_weather()
     result = engine.compute(weather, overrides, events)
-    for a, r in result["airports"].items():
+    for a, r in result["locations"].items():
         r["live"] = bool(weather.get(a, {}).get("live")) and a not in overrides
-        r["name"] = AIRPORTS[a]["name"]
-        r["lat"], r["lon"] = AIRPORTS[a]["lat"], AIRPORTS[a]["lon"]
+        r["name"] = LOCATIONS[a]["name"]
+        r["kind"] = LOCATIONS[a]["kind"]
+        r["lat"], r["lon"] = LOCATIONS[a]["lat"], LOCATIONS[a]["lon"]
     result["events"] = events
     result["event_types"] = {k: v["label"] for k, v in EVENT_TYPES.items()}
     result["overrides"] = {a: o["label"] for a, o in overrides.items()}
@@ -66,7 +67,7 @@ def snapshot() -> dict:
 
 
 def recompute():
-    changed = db.log_changes(snapshot()["flights"])
+    changed = db.log_changes([i for m in snapshot()["modes"].values() for i in m["items"]])
     if changed:
         log.info("flight changes: %s", ", ".join(changed))
     return changed
@@ -101,8 +102,8 @@ class SimIn(BaseModel):
 
 
 def _check_airport(code):
-    if code not in AIRPORTS:
-        raise HTTPException(422, f"unknown airport {code}")
+    if code not in LOCATIONS:
+        raise HTTPException(422, f"unknown location {code}")
 
 
 @app.get("/api/state")

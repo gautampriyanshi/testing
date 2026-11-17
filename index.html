@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Airline Disruption Monitor</title>
+<title>Transport Disruption Monitor</title>
 <style>
   :root{
     --bg:#0b1220;--bg2:#0f1a2e;--card:#142034;--card2:#192840;--line:#243651;--tx:#e8eef7;--mut:#8ea3bf;
@@ -35,9 +35,20 @@
   main{max-width:1380px;margin:auto;padding:20px 24px 60px;display:grid;gap:18px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
   h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 12px;display:flex;align-items:center;gap:8px}
-  h2 .sp{flex:1}
   .banner{display:none;padding:12px 16px;border-radius:12px;border:1px solid var(--bad);background:var(--badbg);font-weight:600}
   .banner.show{display:block}
+
+  /* Mode selector */
+  .modes{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  .mode{display:flex;align-items:center;gap:14px;text-align:left;padding:14px 16px;border-radius:14px;background:var(--card);
+        border:2px solid var(--line);box-shadow:var(--shadow)}
+  .mode .mi{font-size:30px}
+  .mode b{display:block;font-size:16px} .mode small{color:var(--mut)}
+  .mode .mst{margin-left:auto;text-align:right;font-size:12px;color:var(--mut)} .mode .mst b{font-size:20px;color:var(--c)}
+  .mode.on{border-color:var(--acc);background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 16%,var(--card)),var(--card))}
+  @media(max-width:700px){.modes{grid-template-columns:1fr}}
+  .regions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .hint{color:var(--mut);font-size:12px}
 
   /* KPIs */
   .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
@@ -49,16 +60,16 @@
 
   .grid2{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
   @media(max-width:1000px){.grid2{grid-template-columns:1fr}}
-  .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);flex-wrap:wrap}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);flex-wrap:wrap;text-transform:none;letter-spacing:0;font-weight:400}
   .legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
 
   /* Map */
   #map{width:100%;height:auto;display:block;border-radius:10px;background:linear-gradient(180deg,var(--card2),var(--card))}
   #map .gl{stroke:var(--grid);stroke-width:1;fill:none}
-  #map .route{fill:none;stroke-width:1.6;opacity:.85}
-  #map .route.ok{stroke:var(--ok);opacity:.35} #map .route.warn{stroke:var(--warn)}
-  #map .route.bad{stroke:var(--bad);stroke-dasharray:5 5}
-  #map .route.hl{stroke-width:3.2;opacity:1}
+  #map .route{fill:none;stroke-width:2;opacity:.85}
+  #map .route.ok{stroke:var(--ok);opacity:.45} #map .route.warn{stroke:var(--warn)}
+  #map .route.bad{stroke:var(--bad);stroke-dasharray:6 5}
+  #map .route.hl{stroke-width:4;opacity:1}
   #map .node{cursor:pointer} #map .node text{fill:var(--tx);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--card);stroke-width:3px}
   #map .halo{animation:halo 2s infinite;transform-box:fill-box;transform-origin:center}
   @keyframes halo{from{transform:scale(1);opacity:.7}to{transform:scale(2.6);opacity:0}}
@@ -70,14 +81,14 @@
   .donutwrap li{display:flex;align-items:center;gap:8px}
   .sw{width:10px;height:10px;border-radius:3px}
 
-  /* Airports */
+  /* Locations */
   .airports{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-  .ap{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;position:relative;transition:.2s}
+  .ap{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;transition:.2s}
   .ap:hover{transform:translateY(-2px);border-color:var(--acc)}
   .ap .top{display:flex;align-items:center;gap:10px}
   .ap .wi{font-size:26px}
   .ap .code{font-weight:700;font-size:16px;line-height:1.1} .ap .nm{font-size:12px;color:var(--mut)}
-  .ap .score{margin-left:auto;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+  .ap .score{margin-left:auto;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;color:var(--c)}
   .bar{height:6px;border-radius:99px;background:var(--line);margin:10px 0 8px;overflow:hidden}
   .bar>div{height:100%;border-radius:99px;transition:width .6s;background:var(--c)}
   .ap .met{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
@@ -86,9 +97,8 @@
   .tag.sim{background:var(--card);color:var(--mut);border:1px dashed var(--line)}
   .ap.ok{--c:var(--ok)} .ap.warn{--c:var(--warn)} .ap.bad{--c:var(--bad)}
   .ap.warn,.ap.bad{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
-  .ap .score{color:var(--c)}
 
-  /* Flights */
+  /* Table */
   .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
   .chip{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600}
   .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
@@ -111,12 +121,11 @@
   .ev{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
   .ev:last-child{border:0} .ev .ic{font-size:20px} .ev small{color:var(--mut)} .ev .x{margin-left:auto;padding:2px 8px}
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  .tl{max-height:220px;overflow:auto;font-size:13px}
+  .tl{max-height:260px;overflow:auto;font-size:13px}
   .tl div{padding:5px 0 5px 14px;border-left:2px solid var(--line);position:relative;color:var(--mut)}
   .tl div::before{content:"";position:absolute;left:-5px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--c,var(--acc))}
   .tl b{color:var(--tx)}
 
-  /* Toasts */
   #toasts{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:50}
   .toast{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c,var(--acc));padding:10px 14px;border-radius:10px;
          box-shadow:var(--shadow);animation:in .3s;max-width:320px}
@@ -128,8 +137,8 @@
 </head>
 <body>
 <header>
-  <div class="logo">✈</div>
-  <h1>Airline Disruption Monitor<small>Weather + events → flight impact</small></h1>
+  <div class="logo">🧭</div>
+  <h1>Transport Disruption Monitor<small>Weather + events → flight, bus &amp; car impact</small></h1>
   <div class="sp"></div>
   <div class="live"><span class="dot" id="dot"></span><span id="updated">Connecting…</span></div>
   <button id="refresh" class="primary">⟳ Refresh weather</button>
@@ -137,21 +146,22 @@
 </header>
 
 <main>
+  <section class="modes" id="modes" role="tablist" aria-label="Transport mode"></section>
   <div class="banner" id="banner"></div>
   <section class="kpis" id="kpis"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></section>
 
   <div class="grid2">
     <section class="card">
-      <h2>Network map <span class="sp"></span>
-        <span class="legend"><span><i style="background:var(--ok)"></i>On time</span><span><i style="background:var(--warn)"></i>Delayed</span><span><i style="background:var(--bad)"></i>Cancelled</span></span></h2>
-      <svg id="map" viewBox="0 0 1000 500" role="img" aria-label="Flight network map"></svg>
+      <h2 id="mapTitle">Network map <span class="sp"></span><span class="legend" id="legend"></span></h2>
+      <div class="regions" id="regions" style="margin-bottom:10px"></div>
+      <svg id="map" viewBox="0 0 1000 500" role="img" aria-label="Route map"></svg>
     </section>
     <section class="card">
       <h2>Network health</h2>
       <div class="donutwrap" id="donut"></div>
       <h2 style="margin-top:20px">Simulate / ingest</h2>
       <div class="row">
-        <select id="simAp" aria-label="Airport"></select>
+        <select id="simAp" aria-label="Location"></select>
         <select id="simType" aria-label="Scenario">
           <optgroup label="Weather">
             <option value="storm">⛈ Thunderstorm</option><option value="snow">❄ Heavy snow</option><option value="fog">🌫 Dense fog</option>
@@ -164,18 +174,19 @@
         <button id="simGo" class="primary">Inject</button>
         <button id="simClear" class="danger">Clear all</button>
       </div>
-      <h2 style="margin-top:20px">Active disruptions</h2>
+      <p class="hint" id="modeHint"></p>
+      <h2 style="margin-top:14px">Active disruptions</h2>
       <div id="events"></div>
     </section>
   </div>
 
-  <section class="card"><h2>Airports — ingested weather &amp; risk</h2><div class="airports" id="airports"></div></section>
+  <section class="card"><h2 id="locTitle">Locations</h2><div class="airports" id="airports"></div></section>
 
   <div class="grid2">
     <section class="card">
-      <h2>Flights <span class="sp"></span><span id="count" style="text-transform:none;letter-spacing:0"></span></h2>
+      <h2><span id="tblTitle">Flights</span> <span class="sp"></span><span id="count" style="text-transform:none;letter-spacing:0"></span></h2>
       <div class="toolbar">
-        <input id="q" type="search" placeholder="Search flight or airport…" aria-label="Search flights">
+        <input id="q" type="search" placeholder="Search…" aria-label="Search">
         <span id="chips" class="row"></span>
       </div>
       <div class="tw"><table id="flights"></table></div>
@@ -202,7 +213,23 @@ const tone = s => s >= 60 ? "bad" : s >= 20 ? "warn" : "ok";
 const stTone = s => s === "On time" ? "ok" : s === "Delayed" ? "warn" : "bad";
 const css = n => `var(--${n})`;
 
+/* Per-mode vocabulary */
+const MODES = {
+  air: { icon: "✈️", name: "Flights", noun: "flights", id: "Flight", labels: { "On time": "On time", Delayed: "Delayed", Cancelled: "Cancelled" },
+         legend: ["On time", "Delayed", "Cancelled"], curve: 0.28,
+         hint: "Flights are hit by wind, storms, snow, fog and by every event type." },
+  bus:  { icon: "🚌", name: "Buses", noun: "buses", id: "Bus", labels: { "On time": "On time", Delayed: "Delayed", Cancelled: "Cancelled" },
+         legend: ["On time", "Delayed", "Cancelled"], curve: 0.1,
+         hint: "Buses are hit by rain, snow, fog and strikes. ATC outages don't affect them." },
+  car:  { icon: "🚗", name: "Cars", noun: "drives", id: "Drive", labels: { "On time": "Clear", Delayed: "Slow", Cancelled: "Avoid" },
+         legend: ["On time", "Delayed", "Cancelled"], curve: 0.1,
+         hint: "Drives are hit by rain, snow, ice, fog and traffic from mass events. ATC outages and strikes barely matter." },
+};
+const lab = st => MODES[mode].labels[st];
+
 let S = null, prev = null, firstLoad = true, filter = "All", query = "", sort = { k: "score", d: -1 };
+let mode = "air", region = null;
+try { const m = localStorage.getItem("mode"); if (MODES[m]) mode = m; } catch (e) {}
 const open = new Set(), hist = {};
 
 /* ---------- theme ---------- */
@@ -214,7 +241,7 @@ $("theme").onclick = () => {
 };
 
 /* ---------- helpers ---------- */
-function weatherIcon(w, score) {
+function weatherIcon(w) {
   if ([95, 96, 99].includes(w.code)) return "⛈";
   if (w.snow >= 1 || [71, 73, 75, 77, 85, 86].includes(w.code)) return "❄️";
   if ([45, 48].includes(w.code) || w.vis < 3000) return "🌫";
@@ -228,76 +255,129 @@ function toast(msg, t = "acc") {
   el.className = "toast"; el.style.setProperty("--c", css(t)); el.innerHTML = msg;
   $("toasts").appendChild(el); setTimeout(() => el.remove(), 5000);
 }
-const proj = (lat, lon) => [(lon + 180) / 360 * 1000, (90 - lat) / 180 * 500];
-function arc(a, b) {
-  const [x1, y1] = proj(a.lat, a.lon); let [x2, y2] = proj(b.lat, b.lon);
-  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, d = Math.hypot(x2 - x1, y2 - y1);
-  return `M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${(my - d * 0.28).toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
+const durFmt = m => `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+const riskKey = () => mode === "air" ? "score" : mode;
+const whyKey = () => mode === "air" ? "why" : mode + "_why";
+
+/* current mode's items, narrowed by region (ground only) */
+const modeItems = () => S.modes[mode].items;
+const regionList = () => [...new Set(modeItems().map(i => i.region).filter(Boolean))];
+const scoped = () => modeItems().filter(i => mode === "air" || i.region === region);
+
+function makeProj(trips) {
+  if (mode === "air") return (lat, lon) => [(lon + 180) / 360 * 1000, (90 - lat) / 180 * 500];
+  const pts = trips.flatMap(t => [S.locations[t.frm], S.locations[t.to]]);
+  const lats = pts.map(p => p.lat), lons = pts.map(p => p.lon);
+  const cLat = (Math.min(...lats) + Math.max(...lats)) / 2, cLon = (Math.min(...lons) + Math.max(...lons)) / 2;
+  const k = Math.cos(cLat * Math.PI / 180);
+  const w = Math.max((Math.max(...lons) - Math.min(...lons)) * k, 1.2), h = Math.max(Math.max(...lats) - Math.min(...lats), 0.6);
+  const sc = Math.min(1000 / (w * 1.7), 500 / (h * 1.9));
+  return (lat, lon) => [500 + (lon - cLon) * k * sc, 250 - (lat - cLat) * sc];
 }
 
 /* ---------- renderers ---------- */
-function renderKpis(k) {
-  const items = [
-    ["Flights", k.flights, "tracked", "acc"], ["On time", k.on_time, Math.round(k.on_time / k.flights * 100) + "%", "ok"],
-    ["Delayed", k.delayed, k.delayed ? "avg +" + k.avg_delay + " min" : "none", "warn"],
-    ["Cancelled", k.cancelled, Math.round(k.cancelled / k.flights * 100) + "%", "bad"],
-    ["Active events", k.active_events, "ingested", "acc"]];
-  $("kpis").innerHTML = items.map(([a, v, sub, c]) =>
-    `<div class="kpi" style="--c:${css(c)}"><small>${a}</small><b>${v}</b><span>${sub}</span></div>`).join("");
-  const bad = k.cancelled + k.delayed;
-  $("banner").classList.toggle("show", k.cancelled > 0);
-  $("banner").textContent = k.cancelled ? `⚠ ${k.cancelled} flight${k.cancelled > 1 ? "s" : ""} cancelled and ${k.delayed} delayed due to active disruptions.` : "";
+function renderModes() {
+  $("modes").innerHTML = Object.entries(MODES).map(([k, m]) => {
+    const kp = S.modes[k].kpis, bad = kp.delayed + kp.cancelled, t = bad ? (kp.cancelled ? "bad" : "warn") : "ok";
+    return `<button class="mode ${k === mode ? "on" : ""}" data-m="${k}" role="tab" aria-selected="${k === mode}">
+      <span class="mi">${m.icon}</span><span><b>${m.name}</b><small>${kp.total} ${m.noun} tracked</small></span>
+      <span class="mst" style="--c:${css(t)}"><b>${bad}</b><br>disrupted</span></button>`;
+  }).join("");
+  $("modes").querySelectorAll("button").forEach(b => b.onclick = () => {
+    mode = b.dataset.m; try { localStorage.setItem("mode", mode); } catch (e) {}
+    filter = "All"; region = null; open.clear(); render(S, true);
+  });
 }
 
-function renderDonut(k) {
-  const parts = [["On time", k.on_time, "ok"], ["Delayed", k.delayed, "warn"], ["Cancelled", k.cancelled, "bad"]];
+function renderRegions() {
+  const rs = regionList();
+  if (mode === "air" || !rs.length) { $("regions").innerHTML = ""; return; }
+  if (!rs.includes(region)) region = rs[0];
+  $("regions").innerHTML = `<span class="hint">Region:</span>` + rs.map(r =>
+    `<button class="chip ${r === region ? "on" : ""}" data-r="${esc(r)}">${esc(r)}</button>`).join("");
+  $("regions").querySelectorAll("button").forEach(b => b.onclick = () => { region = b.dataset.r; open.clear(); renderAll(); });
+}
+
+function renderKpis() {
+  const k = S.modes[mode].kpis, m = MODES[mode], items = scoped(), n = items.length || 1;
+  const c = st => items.filter(i => i.status === st).length;
+  const avg = (() => { const d = items.filter(i => i.delay); return d.length ? Math.round(d.reduce((a, i) => a + i.delay, 0) / d.length) : 0; })();
+  const cards = [
+    [m.name, items.length, "tracked", "acc"],
+    [lab("On time"), c("On time"), Math.round(c("On time") / n * 100) + "%", "ok"],
+    [lab("Delayed"), c("Delayed"), c("Delayed") ? "avg +" + avg + " min" : "none", "warn"],
+    [lab("Cancelled"), c("Cancelled"), Math.round(c("Cancelled") / n * 100) + "%", "bad"],
+    ["Active events", k.active_events, "ingested", "acc"]];
+  $("kpis").innerHTML = cards.map(([a, v, sub, t]) =>
+    `<div class="kpi" style="--c:${css(t)}"><small>${a}</small><b>${v}</b><span>${sub}</span></div>`).join("");
+  const bad = c("Cancelled");
+  $("banner").classList.toggle("show", bad > 0);
+  $("banner").textContent = bad ? `⚠ ${bad} ${m.noun} ${mode === "car" ? "should be avoided" : "cancelled"} and ${c("Delayed")} ${mode === "car" ? "slowed" : "delayed"} due to active disruptions.` : "";
+}
+
+function renderDonut() {
+  const items = scoped(), n = items.length || 1, c = st => items.filter(i => i.status === st).length;
+  const parts = [[lab("On time"), c("On time"), "ok"], [lab("Delayed"), c("Delayed"), "warn"], [lab("Cancelled"), c("Cancelled"), "bad"]];
   const R = 54, C = 2 * Math.PI * R; let off = 0;
-  const segs = parts.map(([n, v, c]) => {
-    const len = v / k.flights * C, s = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${css(c)}" stroke-width="16"
+  const segs = parts.map(([_, v, t]) => {
+    const len = v / n * C, s = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${css(t)}" stroke-width="16"
       stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`; off += len; return s;
   }).join("");
-  const pct = Math.round(k.on_time / k.flights * 100);
-  $("donut").innerHTML = `<svg viewBox="0 0 140 140" role="img" aria-label="${pct}% on time">
+  const pct = Math.round(c("On time") / n * 100);
+  $("donut").innerHTML = `<svg viewBox="0 0 140 140" role="img" aria-label="${pct}% ${lab("On time")}">
     <circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line)" stroke-width="16"/>${segs}
     <text x="70" y="68" text-anchor="middle" font-size="26" font-weight="700" fill="var(--tx)">${pct}%</text>
-    <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--mut)">on time</text></svg>
-    <ul>${parts.map(([n, v, c]) => `<li><span class="sw" style="background:${css(c)}"></span>${n} <b>${v}</b></li>`).join("")}</ul>`;
+    <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--mut)">${lab("On time").toLowerCase()}</text></svg>
+    <ul>${parts.map(([nm, v, t]) => `<li><span class="sw" style="background:${css(t)}"></span>${nm} <b>${v}</b></li>`).join("")}</ul>`;
 }
 
-function renderMap(s) {
+function renderMap() {
+  const items = scoped(), P = makeProj(items), cv = MODES[mode].curve;
+  $("legend").innerHTML = [["ok", "On time"], ["warn", "Delayed"], ["bad", "Cancelled"]]
+    .map(([t, s]) => `<span><i style="background:${css(t)}"></i>${lab(s)}</span>`).join("");
+  $("mapTitle").firstChild.textContent = mode === "air" ? "Network map " : `${MODES[mode].name} — ${region} `;
   let g = "";
-  for (let x = 0; x <= 1000; x += 83.33) g += `<path class="gl" d="M${x},0V500"/>`;
-  for (let y = 0; y <= 500; y += 83.33) g += `<path class="gl" d="M0,${y}H1000"/>`;
-  g += `<path class="gl" d="M0,250H1000" style="stroke-dasharray:4 6"/>`;
+  for (let x = 0; x <= 1000; x += 100) g += `<path class="gl" d="M${x},0V500"/>`;
+  for (let y = 0; y <= 500; y += 100) g += `<path class="gl" d="M0,${y}H1000"/>`;
   const rank = { ok: 0, warn: 1, bad: 2 };
-  const routes = [...s.flights].sort((a, b) => rank[stTone(a.status)] - rank[stTone(b.status)]).map(f => {
-    const A = s.airports[f.frm], B = s.airports[f.to];
-    return `<path class="route ${stTone(f.status)} ${open.has(f.no) ? "hl" : ""}" d="${arc(A, B)}"><title>${esc(f.no)} ${f.frm}→${f.to}: ${esc(f.status)}</title></path>`;
+  const routes = [...items].sort((a, b) => rank[stTone(a.status)] - rank[stTone(b.status)]).map(f => {
+    const A = S.locations[f.frm], B = S.locations[f.to];
+    const [x1, y1] = P(A.lat, A.lon), [x2, y2] = P(B.lat, B.lon), d = Math.hypot(x2 - x1, y2 - y1);
+    const side = f.frm < f.to ? 1 : -1;  // separate opposite-direction routes
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - d * cv * (mode === "air" ? 1 : side);
+    return `<path class="route ${stTone(f.status)} ${open.has(f.no) ? "hl" : ""}" d="M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${my.toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}">
+      <title>${esc(f.no)} ${f.frm}→${f.to}: ${esc(lab(f.status))}</title></path>`;
   }).join("");
-  const nodes = Object.entries(s.airports).map(([code, a]) => {
-    const [x, y] = proj(a.lat, a.lon), t = tone(a.score);
+  const codes = [...new Set(items.flatMap(i => [i.frm, i.to]))];
+  const rk = riskKey();
+  const nodes = codes.map(code => {
+    const a = S.locations[code], [x, y] = P(a.lat, a.lon), t = tone(a[rk]);
     return `<g class="node" data-ap="${code}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
       ${t !== "ok" ? `<circle class="halo" r="8" fill="${css(t)}"/>` : ""}
       <circle r="7" fill="${css(t)}" stroke="var(--card)" stroke-width="2.5"/>
-      <text x="11" y="4">${code}</text><title>${esc(a.name)} — risk ${a.score}</title></g>`;
+      <text x="11" y="4">${mode === "air" ? code : esc(a.name)}</text><title>${esc(a.name)} — risk ${a[rk]}</title></g>`;
   }).join("");
   $("map").innerHTML = g + routes + nodes;
   $("map").querySelectorAll(".node").forEach(n => n.onclick = () => { $("simAp").value = n.dataset.ap; toast(`Selected <b>${n.dataset.ap}</b> for simulation`); });
 }
 
-function renderAirports(s) {
-  $("airports").innerHTML = Object.entries(s.airports).map(([a, r]) => {
-    const w = r.weather, t = tone(r.score);
+function renderLocations() {
+  const items = scoped(), codes = [...new Set(items.flatMap(i => [i.frm, i.to]))];
+  const rk = riskKey(), wk = whyKey();
+  $("locTitle").textContent = mode === "air" ? "Airports — ingested weather & risk" : `${region} — road conditions & risk (${MODES[mode].name.toLowerCase()})`;
+  $("airports").innerHTML = codes.map(a => {
+    const r = S.locations[a], w = r.weather, sc = r[rk], t = tone(sc);
     return `<div class="ap ${t}">
-      <div class="top"><span class="wi">${weatherIcon(w, r.score)}</span>
-        <div><div class="code">${a}</div><div class="nm">${esc(r.name)}</div></div><div class="score">${r.score}</div></div>
-      <div class="bar"><div style="width:${r.score}%;--c:${css(t)}"></div></div>
+      <div class="top"><span class="wi">${weatherIcon(w)}</span>
+        <div><div class="code">${a}</div><div class="nm">${esc(r.name)}${r.kind === "city" ? " · city" : ""}</div></div><div class="score">${sc}</div></div>
+      <div class="bar"><div style="width:${sc}%;--c:${css(t)}"></div></div>
       <div class="met"><span>🌡 ${w.temp}°C</span><span>💨 ${w.wind | 0}/${w.gust | 0} km/h</span><span>👁 ${(w.vis / 1000).toFixed(1)} km</span>${w.precip ? `<span>🌧 ${w.precip} mm</span>` : ""}</div>
-      <div class="tags">${r.why.map(x => `<span class="tag">⚠ ${esc(x)}</span>`).join("")}${r.live ? "" : `<span class="tag sim">simulated</span>`}</div></div>`;
+      <div class="tags">${r[wk].map(x => `<span class="tag">⚠ ${esc(x)}</span>`).join("")}${r.live ? "" : `<span class="tag sim">simulated</span>`}</div></div>`;
   }).join("");
 }
 
-function renderEvents(s) {
+function renderEvents() {
+  const s = S;
   const ovs = Object.entries(s.overrides).map(([a, l]) => `<div class="ev"><span class="ic">${l.includes("storm") ? "⛈" : l.includes("snow") ? "❄️" : "🌫"}</span>
     <div><b>${a}</b> — ${esc(l)}<br><small>simulated weather</small></div></div>`);
   const evs = s.events.map(e => `<div class="ev"><span class="ic">${ICON[e.type] || "•"}</span>
@@ -307,80 +387,98 @@ function renderEvents(s) {
 }
 
 function renderChips() {
-  const cnt = n => n === "All" ? S.flights.length : S.flights.filter(f => f.status === n).length;
+  const items = scoped(), cnt = n => n === "All" ? items.length : items.filter(f => f.status === n).length;
   $("chips").innerHTML = ["All", "On time", "Delayed", "Cancelled"].map(n =>
-    `<button class="chip ${filter === n ? "on" : ""}" data-f="${n}">${n} ${cnt(n)}</button>`).join("");
-  $("chips").querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.f; renderChips(); renderFlights(); });
+    `<button class="chip ${filter === n ? "on" : ""}" data-f="${n}">${n === "All" ? "All" : lab(n)} ${cnt(n)}</button>`).join("");
+  $("chips").querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.f; renderChips(); renderTable(); });
 }
 
-function renderFlights() {
-  const q = query.trim().toLowerCase();
-  let rows = S.flights.filter(f => (filter === "All" || f.status === filter) &&
-    (!q || `${f.no} ${f.frm} ${f.to}`.toLowerCase().includes(q)));
+function renderTable() {
+  const q = query.trim().toLowerCase(), ground = mode !== "air";
+  $("tblTitle").textContent = MODES[mode].name + (ground ? ` — ${region}` : "");
+  $("q").placeholder = `Search ${MODES[mode].noun} or place…`;
+  let rows = scoped().filter(f => (filter === "All" || f.status === filter) &&
+    (!q || `${f.no} ${f.frm} ${f.to} ${S.locations[f.frm].name} ${S.locations[f.to].name}`.toLowerCase().includes(q)));
   const key = { flight: f => f.no, route: f => f.frm + f.to, sched: f => f.dep, status: f => ["On time", "Delayed", "Cancelled"].indexOf(f.status) * 1000 + f.delay, score: f => f.score };
   rows.sort((a, b) => { const x = key[sort.k](a), y = key[sort.k](b); return (x > y ? 1 : x < y ? -1 : 0) * sort.d; });
-  $("count").textContent = `${rows.length} of ${S.flights.length}`;
+  $("count").textContent = `${rows.length} of ${scoped().length}`;
   const arrow = k => sort.k === k ? (sort.d > 0 ? " ▲" : " ▼") : "";
   const th = (k, l) => `<th data-s="${k}">${l}${arrow(k)}</th>`;
-  let html = `<thead><tr>${th("flight", "Flight")}${th("route", "Route")}${th("sched", "Sched.")}${th("status", "Status")}<th>New dep.</th>${th("score", "Impact")}</tr></thead><tbody>`;
+  let html = `<thead><tr>${th("flight", MODES[mode].id)}${th("route", "Route")}${th("sched", ground ? "Departs" : "Sched.")}${th("status", "Status")}<th>${ground ? "ETA" : "New dep."}</th>${th("score", "Impact")}</tr></thead><tbody>`;
   html += rows.map(f => {
     const p = prev && prev[f.no], changed = p && (p.status !== f.status || p.delay !== f.delay);
-    const [h, m] = f.dep.split(":").map(Number), t = (h * 60 + m + f.delay) % 1440;
-    const nd = f.status === "Cancelled" ? "—" : `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}${f.delay ? " (+" + f.delay + "m)" : ""}`;
+    let nd;
+    if (ground) nd = f.status === "Cancelled" ? "—" : `${f.eta}${f.delay ? " (+" + f.delay + "m)" : ""}`;
+    else { const [h, m] = f.dep.split(":").map(Number), t = (h * 60 + m + f.delay) % 1440;
+      nd = f.status === "Cancelled" ? "—" : `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}${f.delay ? " (+" + f.delay + "m)" : ""}`; }
     const tn = stTone(f.status), isOpen = open.has(f.no);
     let r = `<tr class="f ${changed ? "flash" : ""}" data-no="${esc(f.no)}"><td><b>${isOpen ? "▾" : "▸"} ${esc(f.no)}</b></td><td>${f.frm} → ${f.to}</td><td>${f.dep}</td>
-      <td><span class="pill p-${tn}">${f.status}${f.delay ? ` +${f.delay}m` : ""}</span></td><td>${nd}</td>
+      <td><span class="pill p-${tn}">${lab(f.status)}${f.delay ? ` +${f.delay}m` : ""}</span></td><td>${nd}</td>
       <td><span class="mini" style="--c:${css(tone(f.score))}"><i style="width:${f.score}%"></i></span>${f.score}</td></tr>`;
     if (isOpen) {
       const h2 = (hist[f.no] || []).map(x => `${new Date(x.ts).toLocaleTimeString()} → ${esc(x.status)}${x.delay ? " +" + x.delay + "m" : ""}`).join("<br>");
-      r += `<tr><td class="det" colspan="6"><b>Why:</b> ${f.reasons.length ? esc(f.reasons.join("; ")) : "no disruption factors on this route"}
+      r += `<tr><td class="det" colspan="6">${ground ? `<b>Trip:</b> ${f.km} km, normally ${durFmt(f.dur)} (arrive ${f.eta_base})<br>` : ""}
+        <b>Why:</b> ${f.reasons.length ? esc(f.reasons.join("; ")) : "no disruption factors on this route"}
         ${h2 ? `<br><b>History:</b><br>${h2}` : ""}</td></tr>`;
     }
     return r;
-  }).join("") || `<tr><td colspan="6" class="empty">No flights match.</td></tr>`;
+  }).join("") || `<tr><td colspan="6" class="empty">Nothing matches.</td></tr>`;
   $("flights").innerHTML = html + "</tbody>";
   $("flights").querySelectorAll("th[data-s]").forEach(el => el.onclick = () => {
-    sort = { k: el.dataset.s, d: sort.k === el.dataset.s ? -sort.d : 1 }; renderFlights();
+    sort = { k: el.dataset.s, d: sort.k === el.dataset.s ? -sort.d : 1 }; renderTable();
   });
   $("flights").querySelectorAll("tr.f").forEach(el => el.onclick = async () => {
     const no = el.dataset.no;
     if (open.has(no)) open.delete(no); else { open.add(no); try { hist[no] = await api("/changes?limit=8&flight=" + no); } catch (e) {} }
-    renderFlights(); renderMap(S);
+    renderTable(); renderMap();
   });
 }
 
 async function renderLog() {
-  const rows = await api("/changes?limit=30");
-  $("log").innerHTML = rows.map(r => `<div style="--c:${css(stTone(r.status))}"><b>${esc(r.flight)}</b> → ${esc(r.status)}${r.delay ? " +" + r.delay + "m" : ""}
-    <br><small>${new Date(r.ts).toLocaleTimeString()}</small></div>`).join("") || `<div class="empty" style="border:0">No changes yet</div>`;
+  const rows = await api("/changes?limit=40");
+  $("log").innerHTML = rows.map(r => {
+    const m = r.flight.startsWith("BUS") ? "bus" : r.flight.startsWith("CAR") ? "car" : "air";
+    return `<div style="--c:${css(stTone(r.status))}">${MODES[m].icon} <b>${esc(r.flight)}</b> → ${esc(MODES[m].labels[r.status] || r.status)}${r.delay ? " +" + r.delay + "m" : ""}
+    <br><small>${new Date(r.ts).toLocaleTimeString()}</small></div>`;
+  }).join("") || `<div class="empty" style="border:0">No changes yet</div>`;
 }
 
 function notify(s) {
   if (!prev) return;
-  const ch = s.flights.filter(f => prev[f.no] && (prev[f.no].status !== f.status || prev[f.no].delay !== f.delay));
-  ch.slice(0, 3).forEach(f => toast(`<b>${esc(f.no)}</b> ${f.frm}→${f.to}: ${esc(f.status)}${f.delay ? " +" + f.delay + "m" : ""}`, stTone(f.status)));
-  if (ch.length > 3) toast(`+${ch.length - 3} more flight changes`, "acc");
+  const all = Object.values(s.modes).flatMap(m => m.items);
+  const ch = all.filter(f => prev[f.no] && (prev[f.no].status !== f.status || prev[f.no].delay !== f.delay));
+  ch.slice(0, 3).forEach(f => toast(`${MODES[f.mode].icon} <b>${esc(f.no)}</b> ${f.frm}→${f.to}: ${esc(MODES[f.mode].labels[f.status])}${f.delay ? " +" + f.delay + "m" : ""}`, stTone(f.status)));
+  if (ch.length > 3) toast(`+${ch.length - 3} more changes`, "acc");
 }
 
-function render(s) {
-  notify(s); S = s;
-  if (firstLoad) { $("simAp").innerHTML = Object.keys(s.airports).map(a => `<option>${a}</option>`).join(""); firstLoad = false; }
-  renderKpis(s.kpis); renderDonut(s.kpis); renderMap(s); renderAirports(s); renderEvents(s); renderChips(); renderFlights();
-  prev = Object.fromEntries(s.flights.map(f => [f.no, { status: f.status, delay: f.delay }]));
+function renderAll() {
+  renderModes(); renderRegions(); renderKpis(); renderDonut(); renderMap(); renderLocations(); renderChips(); renderTable();
+  $("modeHint").textContent = MODES[mode].hint;
+}
+function render(s, modeSwitch) {
+  if (!modeSwitch) notify(s);
+  S = s;
+  if (firstLoad) {
+    const opt = k => Object.entries(s.locations).filter(([, v]) => v.kind === k).map(([c, v]) => `<option value="${c}">${c} — ${esc(v.name)}</option>`).join("");
+    $("simAp").innerHTML = `<optgroup label="Airports">${opt("airport")}</optgroup><optgroup label="Cities">${opt("city")}</optgroup>`;
+    firstLoad = false;
+  }
+  renderEvents(); renderAll();
+  prev = Object.fromEntries(Object.values(s.modes).flatMap(m => m.items).map(f => [f.no, { status: f.status, delay: f.delay }]));
 }
 
 async function refresh(s) {
   try {
     render(s || await api("/state")); await renderLog();
     $("dot").classList.remove("off"); $("updated").textContent = "Live · synced " + new Date().toLocaleTimeString();
-  } catch (e) { $("dot").classList.add("off"); $("updated").textContent = "Backend unreachable: " + e.message; }
+  } catch (e) { $("dot").classList.add("off"); $("updated").textContent = "Backend unreachable: " + e.message; console.error(e); }
 }
 async function delEvent(id) { refresh(await api("/events/" + id, "DELETE")); }
 
 $("simGo").onclick = async () => { try { refresh(await api("/simulate", "POST", { airport: $("simAp").value, type: $("simType").value })); } catch (e) { toast(esc(e.message), "bad"); } };
 $("simClear").onclick = async () => { refresh(await api("/clear", "POST")); toast("Cleared all simulated data", "ok"); };
 $("refresh").onclick = async () => { $("refresh").disabled = true; try { const r = await api("/refresh", "POST"); toast(esc(r.message), "ok"); refresh(r); } finally { $("refresh").disabled = false; } };
-$("q").oninput = e => { query = e.target.value; if (S) renderFlights(); };
+$("q").oninput = e => { query = e.target.value; if (S) renderTable(); };
 
 refresh();
 setInterval(refresh, 10000);
