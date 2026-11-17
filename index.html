@@ -5,15 +5,16 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Transport Disruption Monitor</title>
 <style>
+  /* Default: soft, light palette */
   :root{
+    --bg:#f6f9ff;--bg2:#e6efff;--card:#ffffff;--card2:#f1f6ff;--line:#dce6f6;--tx:#1c2b44;--mut:#64789a;
+    --ok:#12a574;--warn:#d98a06;--bad:#e04f4f;--acc:#3b82f6;--shadow:0 4px 18px rgba(59,100,180,.09);
+    --okbg:rgba(18,165,116,.11);--warnbg:rgba(217,138,6,.12);--badbg:rgba(224,79,79,.10);--grid:#e3ecfa;
+  }
+  :root[data-theme="dark"]{
     --bg:#0b1220;--bg2:#0f1a2e;--card:#142034;--card2:#192840;--line:#243651;--tx:#e8eef7;--mut:#8ea3bf;
     --ok:#34d399;--warn:#fbbf24;--bad:#f87171;--acc:#60a5fa;--shadow:0 6px 24px rgba(0,0,0,.28);
     --okbg:rgba(52,211,153,.14);--warnbg:rgba(251,191,36,.14);--badbg:rgba(248,113,113,.15);--grid:#1b2c46;
-  }
-  :root[data-theme="light"]{
-    --bg:#f1f5fb;--bg2:#e8eef8;--card:#fff;--card2:#f6f9fe;--line:#d9e2f0;--tx:#0f1b2d;--mut:#5b6e8a;
-    --ok:#0f9d6a;--warn:#c27c00;--bad:#d03a3a;--acc:#2563eb;--shadow:0 4px 18px rgba(30,60,110,.10);
-    --okbg:rgba(15,157,106,.12);--warnbg:rgba(194,124,0,.13);--badbg:rgba(208,58,58,.12);--grid:#dbe5f3;
   }
   *{box-sizing:border-box}
   body{margin:0;font:14px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--tx);
@@ -233,11 +234,12 @@ try { const m = localStorage.getItem("mode"); if (MODES[m]) mode = m; } catch (e
 const open = new Set(), hist = {};
 
 /* ---------- theme ---------- */
-try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+document.documentElement.dataset.theme = "light";
+try { const t = localStorage.getItem("theme-v2"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
 $("theme").onclick = () => {
   const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
   document.documentElement.dataset.theme = t;
-  try { localStorage.setItem("theme", t); } catch (e) {}
+  try { localStorage.setItem("theme-v2", t); } catch (e) {}
 };
 
 /* ---------- helpers ---------- */
