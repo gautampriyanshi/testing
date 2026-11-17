@@ -58,6 +58,7 @@ def snapshot() -> dict:
     for a, r in result["airports"].items():
         r["live"] = bool(weather.get(a, {}).get("live")) and a not in overrides
         r["name"] = AIRPORTS[a]["name"]
+        r["lat"], r["lon"] = AIRPORTS[a]["lat"], AIRPORTS[a]["lon"]
     result["events"] = events
     result["event_types"] = {k: v["label"] for k, v in EVENT_TYPES.items()}
     result["overrides"] = {a: o["label"] for a, o in overrides.items()}

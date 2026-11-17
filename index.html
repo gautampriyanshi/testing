@@ -5,150 +5,385 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Airline Disruption Monitor</title>
 <style>
-  :root{--bg:#0f1720;--card:#18232f;--line:#263545;--tx:#e6edf3;--mut:#8aa0b4;
-        --ok:#2ecc71;--warn:#f5a623;--bad:#ff5c5c;--acc:#4da3ff}
+  :root{
+    --bg:#0b1220;--bg2:#0f1a2e;--card:#142034;--card2:#192840;--line:#243651;--tx:#e8eef7;--mut:#8ea3bf;
+    --ok:#34d399;--warn:#fbbf24;--bad:#f87171;--acc:#60a5fa;--shadow:0 6px 24px rgba(0,0,0,.28);
+    --okbg:rgba(52,211,153,.14);--warnbg:rgba(251,191,36,.14);--badbg:rgba(248,113,113,.15);--grid:#1b2c46;
+  }
+  :root[data-theme="light"]{
+    --bg:#f1f5fb;--bg2:#e8eef8;--card:#fff;--card2:#f6f9fe;--line:#d9e2f0;--tx:#0f1b2d;--mut:#5b6e8a;
+    --ok:#0f9d6a;--warn:#c27c00;--bad:#d03a3a;--acc:#2563eb;--shadow:0 4px 18px rgba(30,60,110,.10);
+    --okbg:rgba(15,157,106,.12);--warnbg:rgba(194,124,0,.13);--badbg:rgba(208,58,58,.12);--grid:#dbe5f3;
+  }
   *{box-sizing:border-box}
-  body{margin:0;font:14px/1.45 system-ui,Segoe UI,sans-serif;background:var(--bg);color:var(--tx)}
-  header{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
-  h1{font-size:18px;margin:0;flex:1}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mut);margin:0 0 10px}
-  main{padding:16px 20px;display:grid;gap:16px;max-width:1300px;margin:auto}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-  .kpi b{font-size:26px;display:block}
-  .airports{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-  .ap{border:1px solid var(--line);border-left:4px solid var(--ok);border-radius:8px;padding:10px;background:#142029}
-  .ap.warn{border-left-color:var(--warn)} .ap.bad{border-left-color:var(--bad)}
-  .ap .code{font-weight:700;font-size:16px} .ap small{color:var(--mut)}
-  .cols{display:grid;grid-template-columns:2fr 1fr;gap:16px}
-  @media(max-width:900px){.cols{grid-template-columns:1fr}}
-  table{width:100%;border-collapse:collapse}
-  th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
-  th{color:var(--mut);font-weight:600;font-size:12px}
+  body{margin:0;font:14px/1.5 "Segoe UI",system-ui,sans-serif;color:var(--tx);
+       background:radial-gradient(1200px 500px at 10% -10%,var(--bg2),var(--bg));background-color:var(--bg);min-height:100vh}
+  header{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 24px;
+         background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:18px;
+        background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff}
+  h1{font-size:17px;margin:0;line-height:1.2} h1 small{display:block;color:var(--mut);font-weight:400;font-size:12px}
+  .sp{flex:1}
+  .live{display:flex;align-items:center;gap:8px;color:var(--mut);font-size:12px}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 0 var(--ok);animation:pulse 2s infinite}
+  .dot.off{background:var(--bad);animation:none}
+  @keyframes pulse{70%{box-shadow:0 0 0 8px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  button,select,input{background:var(--card2);color:var(--tx);border:1px solid var(--line);border-radius:8px;padding:7px 12px;font:inherit}
+  button{cursor:pointer;transition:.15s} button:hover{border-color:var(--acc);transform:translateY(-1px)}
+  button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+  button.danger:hover{border-color:var(--bad);color:var(--bad)}
+  main{max-width:1380px;margin:auto;padding:20px 24px 60px;display:grid;gap:18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  h2 .sp{flex:1}
+  .banner{display:none;padding:12px 16px;border-radius:12px;border:1px solid var(--bad);background:var(--badbg);font-weight:600}
+  .banner.show{display:block}
+
+  /* KPIs */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--c,var(--acc))}
+  .kpi small{color:var(--mut);display:block;font-size:12px}
+  .kpi b{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums}
+  .kpi span{font-size:12px;color:var(--mut)}
+
+  .grid2{display:grid;grid-template-columns:1.7fr 1fr;gap:18px}
+  @media(max-width:1000px){.grid2{grid-template-columns:1fr}}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--mut);flex-wrap:wrap}
+  .legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+
+  /* Map */
+  #map{width:100%;height:auto;display:block;border-radius:10px;background:linear-gradient(180deg,var(--card2),var(--card))}
+  #map .gl{stroke:var(--grid);stroke-width:1;fill:none}
+  #map .route{fill:none;stroke-width:1.6;opacity:.85}
+  #map .route.ok{stroke:var(--ok);opacity:.35} #map .route.warn{stroke:var(--warn)}
+  #map .route.bad{stroke:var(--bad);stroke-dasharray:5 5}
+  #map .route.hl{stroke-width:3.2;opacity:1}
+  #map .node{cursor:pointer} #map .node text{fill:var(--tx);font-size:12px;font-weight:700;paint-order:stroke;stroke:var(--card);stroke-width:3px}
+  #map .halo{animation:halo 2s infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes halo{from{transform:scale(1);opacity:.7}to{transform:scale(2.6);opacity:0}}
+
+  /* Donut */
+  .donutwrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .donutwrap svg{width:150px;height:150px;flex:none}
+  .donutwrap ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .donutwrap li{display:flex;align-items:center;gap:8px}
+  .sw{width:10px;height:10px;border-radius:3px}
+
+  /* Airports */
+  .airports{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+  .ap{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px;position:relative;transition:.2s}
+  .ap:hover{transform:translateY(-2px);border-color:var(--acc)}
+  .ap .top{display:flex;align-items:center;gap:10px}
+  .ap .wi{font-size:26px}
+  .ap .code{font-weight:700;font-size:16px;line-height:1.1} .ap .nm{font-size:12px;color:var(--mut)}
+  .ap .score{margin-left:auto;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+  .bar{height:6px;border-radius:99px;background:var(--line);margin:10px 0 8px;overflow:hidden}
+  .bar>div{height:100%;border-radius:99px;transition:width .6s;background:var(--c)}
+  .ap .met{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--mut)}
+  .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+  .tag{font-size:11px;padding:2px 8px;border-radius:99px;background:var(--warnbg);color:var(--warn);font-weight:600}
+  .tag.sim{background:var(--card);color:var(--mut);border:1px dashed var(--line)}
+  .ap.ok{--c:var(--ok)} .ap.warn{--c:var(--warn)} .ap.bad{--c:var(--bad)}
+  .ap.warn,.ap.bad{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
+  .ap .score{color:var(--c)}
+
+  /* Flights */
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  .chip{padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600}
+  .chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
   .tw{overflow-x:auto}
-  .pill{padding:2px 8px;border-radius:99px;font-size:12px;font-weight:600}
-  .p-ok{background:#12351f;color:var(--ok)} .p-warn{background:#3d2d0c;color:var(--warn)} .p-bad{background:#431a1a;color:var(--bad)}
-  .why{color:var(--mut);font-size:12px;white-space:normal;max-width:360px}
-  tr.flash{animation:fl 1.2s} @keyframes fl{from{background:#2a3b4d}to{background:transparent}}
-  button,select,input{background:#223244;color:var(--tx);border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:inherit}
-  button{cursor:pointer} button:hover{border-color:var(--acc)}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .ev{border-bottom:1px solid var(--line);padding:8px 0}
-  .ev:last-child{border:0} .ev small{color:var(--mut)}
-  .log{font:12px ui-monospace,Consolas,monospace;color:var(--mut);max-height:130px;overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--mut);font-weight:600;font-size:12px;cursor:pointer;user-select:none} th:hover{color:var(--tx)}
+  tbody tr.f{cursor:pointer} tbody tr.f:hover{background:var(--card2)}
+  tr.flash{animation:fl 1.6s}
+  @keyframes fl{from{background:color-mix(in srgb,var(--acc) 30%,transparent)}to{background:transparent}}
+  .pill{padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;display:inline-block}
+  .p-ok{background:var(--okbg);color:var(--ok)} .p-warn{background:var(--warnbg);color:var(--warn)} .p-bad{background:var(--badbg);color:var(--bad)}
+  .mini{display:inline-block;width:54px;height:6px;border-radius:99px;background:var(--line);vertical-align:middle;margin-right:6px;overflow:hidden}
+  .mini>i{display:block;height:100%;background:var(--c)}
+  td.det{white-space:normal;background:var(--card2);color:var(--mut);font-size:13px}
+  .det b{color:var(--tx)}
+  .empty{padding:24px;text-align:center;color:var(--mut)}
+
+  /* Side */
+  .ev{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line)}
+  .ev:last-child{border:0} .ev .ic{font-size:20px} .ev small{color:var(--mut)} .ev .x{margin-left:auto;padding:2px 8px}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  .tl{max-height:220px;overflow:auto;font-size:13px}
+  .tl div{padding:5px 0 5px 14px;border-left:2px solid var(--line);position:relative;color:var(--mut)}
+  .tl div::before{content:"";position:absolute;left:-5px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--c,var(--acc))}
+  .tl b{color:var(--tx)}
+
+  /* Toasts */
+  #toasts{position:fixed;right:18px;bottom:18px;display:grid;gap:8px;z-index:50}
+  .toast{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--c,var(--acc));padding:10px 14px;border-radius:10px;
+         box-shadow:var(--shadow);animation:in .3s;max-width:320px}
+  @keyframes in{from{transform:translateY(12px);opacity:0}}
+  .skeleton{height:90px;border-radius:12px;background:linear-gradient(90deg,var(--card2),var(--line),var(--card2));background-size:200%;animation:sh 1.2s infinite}
+  @keyframes sh{to{background-position:-200% 0}}
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <header>
-  <h1>✈ Airline Disruption Monitor <small style="color:var(--mut);font-weight:400">weather + events → flight impact</small></h1>
-  <span id="updated" style="color:var(--mut)"></span>
-  <button id="refresh">Refresh weather</button>
+  <div class="logo">✈</div>
+  <h1>Airline Disruption Monitor<small>Weather + events → flight impact</small></h1>
+  <div class="sp"></div>
+  <div class="live"><span class="dot" id="dot"></span><span id="updated">Connecting…</span></div>
+  <button id="refresh" class="primary">⟳ Refresh weather</button>
+  <button id="theme" title="Toggle theme">◐</button>
 </header>
+
 <main>
-  <section class="card kpis" id="kpis"></section>
+  <div class="banner" id="banner"></div>
+  <section class="kpis" id="kpis"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></section>
 
-  <section class="card"><h2>Airports — ingested weather & event risk</h2><div class="airports" id="airports"></div></section>
-
-  <div class="cols">
-    <section class="card"><h2>Flights — live status</h2><div class="tw"><table id="flights"></table></div></section>
+  <div class="grid2">
     <section class="card">
-      <h2>Event feed</h2>
-      <div id="events"></div>
-      <h2 style="margin-top:14px">Simulate / ingest</h2>
+      <h2>Network map <span class="sp"></span>
+        <span class="legend"><span><i style="background:var(--ok)"></i>On time</span><span><i style="background:var(--warn)"></i>Delayed</span><span><i style="background:var(--bad)"></i>Cancelled</span></span></h2>
+      <svg id="map" viewBox="0 0 1000 500" role="img" aria-label="Flight network map"></svg>
+    </section>
+    <section class="card">
+      <h2>Network health</h2>
+      <div class="donutwrap" id="donut"></div>
+      <h2 style="margin-top:20px">Simulate / ingest</h2>
       <div class="row">
-        <select id="simAp"></select>
-        <select id="simType">
-          <option value="storm">Thunderstorm (weather)</option>
-          <option value="snow">Heavy snow (weather)</option>
-          <option value="fog">Dense fog (weather)</option>
-          <option value="strike">Strike (event)</option>
-          <option value="atc">ATC outage (event)</option>
-          <option value="security">Security incident (event)</option>
-          <option value="ash">Volcanic ash (event)</option>
-          <option value="festival">Mass event / festival (event)</option>
+        <select id="simAp" aria-label="Airport"></select>
+        <select id="simType" aria-label="Scenario">
+          <optgroup label="Weather">
+            <option value="storm">⛈ Thunderstorm</option><option value="snow">❄ Heavy snow</option><option value="fog">🌫 Dense fog</option>
+          </optgroup>
+          <optgroup label="Events">
+            <option value="strike">✊ Strike</option><option value="atc">📡 ATC outage</option><option value="security">🚨 Security incident</option>
+            <option value="ash">🌋 Volcanic ash</option><option value="festival">🎪 Mass event</option>
+          </optgroup>
         </select>
-        <button id="simGo">Inject</button>
-        <button id="simClear">Clear all</button>
+        <button id="simGo" class="primary">Inject</button>
+        <button id="simClear" class="danger">Clear all</button>
       </div>
-      <h2 style="margin-top:14px">Flight change history</h2>
-      <div class="log" id="log"></div>
+      <h2 style="margin-top:20px">Active disruptions</h2>
+      <div id="events"></div>
+    </section>
+  </div>
+
+  <section class="card"><h2>Airports — ingested weather &amp; risk</h2><div class="airports" id="airports"></div></section>
+
+  <div class="grid2">
+    <section class="card">
+      <h2>Flights <span class="sp"></span><span id="count" style="text-transform:none;letter-spacing:0"></span></h2>
+      <div class="toolbar">
+        <input id="q" type="search" placeholder="Search flight or airport…" aria-label="Search flights">
+        <span id="chips" class="row"></span>
+      </div>
+      <div class="tw"><table id="flights"></table></div>
+    </section>
+    <section class="card">
+      <h2>Change history</h2>
+      <div class="tl" id="log"></div>
     </section>
   </div>
 </main>
+<div id="toasts" aria-live="polite"></div>
 
 <script>
-/* Frontend is now a thin client: all ingest + rules run in the Python backend. */
+/* Thin client: ingest + rules run in the Python backend. */
 const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const api = async (path, method = "GET", body) => {
-  const r = await fetch("/api" + path, { method, headers: { "Content-Type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined });
+  const r = await fetch("/api" + path, { method, headers: { "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   if (!r.ok) throw new Error((await r.json().catch(() => ({}))).detail || r.status);
   return r.json();
 };
 const ICON = { strike: "✊", atc: "📡", security: "🚨", ash: "🌋", festival: "🎪" };
-const cls = s => s >= 60 ? "bad" : s >= 20 ? "warn" : "ok";
-const prev = {};
-let airportsFilled = false;
+const tone = s => s >= 60 ? "bad" : s >= 20 ? "warn" : "ok";
+const stTone = s => s === "On time" ? "ok" : s === "Delayed" ? "warn" : "bad";
+const css = n => `var(--${n})`;
 
-function render(s) {
-  const k = s.kpis;
-  $("kpis").innerHTML = [["Flights", k.flights], ["On time", k.on_time], ["Delayed", k.delayed],
-    ["Cancelled", k.cancelled], ["Avg delay", k.avg_delay + " min"], ["Active events", k.active_events]]
-    .map(([a, v]) => `<div class="kpi"><small style="color:var(--mut)">${a}</small><b>${v}</b></div>`).join("");
+let S = null, prev = null, firstLoad = true, filter = "All", query = "", sort = { k: "score", d: -1 };
+const open = new Set(), hist = {};
 
-  if (!airportsFilled) {
-    $("simAp").innerHTML = Object.keys(s.airports).map(a => `<option>${a}</option>`).join("");
-    airportsFilled = true;
-  }
+/* ---------- theme ---------- */
+try { const t = localStorage.getItem("theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+$("theme").onclick = () => {
+  const t = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("theme", t); } catch (e) {}
+};
 
-  $("airports").innerHTML = Object.entries(s.airports).map(([a, r]) => {
-    const w = r.weather, c = cls(r.score);
-    return `<div class="ap ${c === "ok" ? "" : c}">
-      <div class="code">${a} <small>${r.name}</small></div>
-      <div>Risk <b>${r.score}</b>/100 ${r.live ? "" : "<small>(sim)</small>"}</div>
-      <small>${w.temp}°C · wind ${w.wind | 0}/${w.gust | 0} km/h · vis ${(w.vis / 1000).toFixed(1)} km${w.precip ? ` · rain ${w.precip}mm` : ""}</small><br>
-      <small>${r.why.length ? "⚠ " + r.why.join(", ") : "No disruption factors"}</small></div>`;
-  }).join("");
-
-  $("flights").innerHTML = `<tr><th>Flight</th><th>Route</th><th>Sched.</th><th>Status</th><th>New dep.</th><th>Impact</th><th>Why</th></tr>` +
-    s.flights.map(f => {
-      const p = prev[f.no], changed = p && (p.status !== f.status || p.delay !== f.delay);
-      const [h, m] = f.dep.split(":").map(Number), t = (h * 60 + m + f.delay) % 1440;
-      const nd = f.status === "Cancelled" ? "—" : `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
-      const pc = f.status === "On time" ? "p-ok" : f.status === "Delayed" ? "p-warn" : "p-bad";
-      return `<tr class="${changed ? "flash" : ""}"><td><b>${f.no}</b></td><td>${f.frm} → ${f.to}</td><td>${f.dep}</td>
-        <td><span class="pill ${pc}">${f.status}${f.delay ? ` +${f.delay}m` : ""}</span></td><td>${nd}</td><td>${f.score}</td>
-        <td class="why">${f.reasons.join("; ") || "—"}</td></tr>`;
-    }).join("");
-  s.flights.forEach(f => prev[f.no] = { status: f.status, delay: f.delay });
-
-  const ovs = Object.entries(s.overrides).map(([a, l]) => `<div class="ev">⛈ <b>${a}</b> simulated weather: ${l}</div>`);
-  const evs = s.events.map(e => `<div class="ev">${ICON[e.type] || "•"} <b>${e.airport}</b> — ${s.event_types[e.type]}
-    <button style="float:right;padding:0 6px" onclick="delEvent(${e.id})">✕</button><br>
-    <small>${e.note || ""} · ${new Date(e.ts).toLocaleTimeString()}</small></div>`);
-  $("events").innerHTML = ovs.concat(evs).join("") || "<small>No events</small>";
+/* ---------- helpers ---------- */
+function weatherIcon(w, score) {
+  if ([95, 96, 99].includes(w.code)) return "⛈";
+  if (w.snow >= 1 || [71, 73, 75, 77, 85, 86].includes(w.code)) return "❄️";
+  if ([45, 48].includes(w.code) || w.vis < 3000) return "🌫";
+  if ((w.precip || 0) >= 1 || [51, 53, 55, 61, 63, 65, 80, 81, 82].includes(w.code)) return "🌧";
+  if (w.gust >= 60) return "💨";
+  if (w.code === 0 || w.code === 1) return "☀️";
+  return w.code === 2 ? "⛅" : "☁️";
+}
+function toast(msg, t = "acc") {
+  const el = document.createElement("div");
+  el.className = "toast"; el.style.setProperty("--c", css(t)); el.innerHTML = msg;
+  $("toasts").appendChild(el); setTimeout(() => el.remove(), 5000);
+}
+const proj = (lat, lon) => [(lon + 180) / 360 * 1000, (90 - lat) / 180 * 500];
+function arc(a, b) {
+  const [x1, y1] = proj(a.lat, a.lon); let [x2, y2] = proj(b.lat, b.lon);
+  const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, d = Math.hypot(x2 - x1, y2 - y1);
+  return `M${x1.toFixed(1)},${y1.toFixed(1)} Q${mx.toFixed(1)},${(my - d * 0.28).toFixed(1)} ${x2.toFixed(1)},${y2.toFixed(1)}`;
 }
 
-async function loadChanges() {
+/* ---------- renderers ---------- */
+function renderKpis(k) {
+  const items = [
+    ["Flights", k.flights, "tracked", "acc"], ["On time", k.on_time, Math.round(k.on_time / k.flights * 100) + "%", "ok"],
+    ["Delayed", k.delayed, k.delayed ? "avg +" + k.avg_delay + " min" : "none", "warn"],
+    ["Cancelled", k.cancelled, Math.round(k.cancelled / k.flights * 100) + "%", "bad"],
+    ["Active events", k.active_events, "ingested", "acc"]];
+  $("kpis").innerHTML = items.map(([a, v, sub, c]) =>
+    `<div class="kpi" style="--c:${css(c)}"><small>${a}</small><b>${v}</b><span>${sub}</span></div>`).join("");
+  const bad = k.cancelled + k.delayed;
+  $("banner").classList.toggle("show", k.cancelled > 0);
+  $("banner").textContent = k.cancelled ? `⚠ ${k.cancelled} flight${k.cancelled > 1 ? "s" : ""} cancelled and ${k.delayed} delayed due to active disruptions.` : "";
+}
+
+function renderDonut(k) {
+  const parts = [["On time", k.on_time, "ok"], ["Delayed", k.delayed, "warn"], ["Cancelled", k.cancelled, "bad"]];
+  const R = 54, C = 2 * Math.PI * R; let off = 0;
+  const segs = parts.map(([n, v, c]) => {
+    const len = v / k.flights * C, s = `<circle r="${R}" cx="70" cy="70" fill="none" stroke="${css(c)}" stroke-width="16"
+      stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 70 70)"/>`; off += len; return s;
+  }).join("");
+  const pct = Math.round(k.on_time / k.flights * 100);
+  $("donut").innerHTML = `<svg viewBox="0 0 140 140" role="img" aria-label="${pct}% on time">
+    <circle r="${R}" cx="70" cy="70" fill="none" stroke="var(--line)" stroke-width="16"/>${segs}
+    <text x="70" y="68" text-anchor="middle" font-size="26" font-weight="700" fill="var(--tx)">${pct}%</text>
+    <text x="70" y="88" text-anchor="middle" font-size="11" fill="var(--mut)">on time</text></svg>
+    <ul>${parts.map(([n, v, c]) => `<li><span class="sw" style="background:${css(c)}"></span>${n} <b>${v}</b></li>`).join("")}</ul>`;
+}
+
+function renderMap(s) {
+  let g = "";
+  for (let x = 0; x <= 1000; x += 83.33) g += `<path class="gl" d="M${x},0V500"/>`;
+  for (let y = 0; y <= 500; y += 83.33) g += `<path class="gl" d="M0,${y}H1000"/>`;
+  g += `<path class="gl" d="M0,250H1000" style="stroke-dasharray:4 6"/>`;
+  const rank = { ok: 0, warn: 1, bad: 2 };
+  const routes = [...s.flights].sort((a, b) => rank[stTone(a.status)] - rank[stTone(b.status)]).map(f => {
+    const A = s.airports[f.frm], B = s.airports[f.to];
+    return `<path class="route ${stTone(f.status)} ${open.has(f.no) ? "hl" : ""}" d="${arc(A, B)}"><title>${esc(f.no)} ${f.frm}→${f.to}: ${esc(f.status)}</title></path>`;
+  }).join("");
+  const nodes = Object.entries(s.airports).map(([code, a]) => {
+    const [x, y] = proj(a.lat, a.lon), t = tone(a.score);
+    return `<g class="node" data-ap="${code}" transform="translate(${x.toFixed(1)},${y.toFixed(1)})">
+      ${t !== "ok" ? `<circle class="halo" r="8" fill="${css(t)}"/>` : ""}
+      <circle r="7" fill="${css(t)}" stroke="var(--card)" stroke-width="2.5"/>
+      <text x="11" y="4">${code}</text><title>${esc(a.name)} — risk ${a.score}</title></g>`;
+  }).join("");
+  $("map").innerHTML = g + routes + nodes;
+  $("map").querySelectorAll(".node").forEach(n => n.onclick = () => { $("simAp").value = n.dataset.ap; toast(`Selected <b>${n.dataset.ap}</b> for simulation`); });
+}
+
+function renderAirports(s) {
+  $("airports").innerHTML = Object.entries(s.airports).map(([a, r]) => {
+    const w = r.weather, t = tone(r.score);
+    return `<div class="ap ${t}">
+      <div class="top"><span class="wi">${weatherIcon(w, r.score)}</span>
+        <div><div class="code">${a}</div><div class="nm">${esc(r.name)}</div></div><div class="score">${r.score}</div></div>
+      <div class="bar"><div style="width:${r.score}%;--c:${css(t)}"></div></div>
+      <div class="met"><span>🌡 ${w.temp}°C</span><span>💨 ${w.wind | 0}/${w.gust | 0} km/h</span><span>👁 ${(w.vis / 1000).toFixed(1)} km</span>${w.precip ? `<span>🌧 ${w.precip} mm</span>` : ""}</div>
+      <div class="tags">${r.why.map(x => `<span class="tag">⚠ ${esc(x)}</span>`).join("")}${r.live ? "" : `<span class="tag sim">simulated</span>`}</div></div>`;
+  }).join("");
+}
+
+function renderEvents(s) {
+  const ovs = Object.entries(s.overrides).map(([a, l]) => `<div class="ev"><span class="ic">${l.includes("storm") ? "⛈" : l.includes("snow") ? "❄️" : "🌫"}</span>
+    <div><b>${a}</b> — ${esc(l)}<br><small>simulated weather</small></div></div>`);
+  const evs = s.events.map(e => `<div class="ev"><span class="ic">${ICON[e.type] || "•"}</span>
+    <div><b>${e.airport}</b> — ${esc(s.event_types[e.type])}<br><small>${esc(e.note || "")} · ${new Date(e.ts).toLocaleTimeString()}</small></div>
+    <button class="x" onclick="delEvent(${e.id})" aria-label="Remove event">✕</button></div>`);
+  $("events").innerHTML = ovs.concat(evs).join("") || `<div class="empty">No active disruptions — all clear ✅</div>`;
+}
+
+function renderChips() {
+  const cnt = n => n === "All" ? S.flights.length : S.flights.filter(f => f.status === n).length;
+  $("chips").innerHTML = ["All", "On time", "Delayed", "Cancelled"].map(n =>
+    `<button class="chip ${filter === n ? "on" : ""}" data-f="${n}">${n} ${cnt(n)}</button>`).join("");
+  $("chips").querySelectorAll("button").forEach(b => b.onclick = () => { filter = b.dataset.f; renderChips(); renderFlights(); });
+}
+
+function renderFlights() {
+  const q = query.trim().toLowerCase();
+  let rows = S.flights.filter(f => (filter === "All" || f.status === filter) &&
+    (!q || `${f.no} ${f.frm} ${f.to}`.toLowerCase().includes(q)));
+  const key = { flight: f => f.no, route: f => f.frm + f.to, sched: f => f.dep, status: f => ["On time", "Delayed", "Cancelled"].indexOf(f.status) * 1000 + f.delay, score: f => f.score };
+  rows.sort((a, b) => { const x = key[sort.k](a), y = key[sort.k](b); return (x > y ? 1 : x < y ? -1 : 0) * sort.d; });
+  $("count").textContent = `${rows.length} of ${S.flights.length}`;
+  const arrow = k => sort.k === k ? (sort.d > 0 ? " ▲" : " ▼") : "";
+  const th = (k, l) => `<th data-s="${k}">${l}${arrow(k)}</th>`;
+  let html = `<thead><tr>${th("flight", "Flight")}${th("route", "Route")}${th("sched", "Sched.")}${th("status", "Status")}<th>New dep.</th>${th("score", "Impact")}</tr></thead><tbody>`;
+  html += rows.map(f => {
+    const p = prev && prev[f.no], changed = p && (p.status !== f.status || p.delay !== f.delay);
+    const [h, m] = f.dep.split(":").map(Number), t = (h * 60 + m + f.delay) % 1440;
+    const nd = f.status === "Cancelled" ? "—" : `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}${f.delay ? " (+" + f.delay + "m)" : ""}`;
+    const tn = stTone(f.status), isOpen = open.has(f.no);
+    let r = `<tr class="f ${changed ? "flash" : ""}" data-no="${esc(f.no)}"><td><b>${isOpen ? "▾" : "▸"} ${esc(f.no)}</b></td><td>${f.frm} → ${f.to}</td><td>${f.dep}</td>
+      <td><span class="pill p-${tn}">${f.status}${f.delay ? ` +${f.delay}m` : ""}</span></td><td>${nd}</td>
+      <td><span class="mini" style="--c:${css(tone(f.score))}"><i style="width:${f.score}%"></i></span>${f.score}</td></tr>`;
+    if (isOpen) {
+      const h2 = (hist[f.no] || []).map(x => `${new Date(x.ts).toLocaleTimeString()} → ${esc(x.status)}${x.delay ? " +" + x.delay + "m" : ""}`).join("<br>");
+      r += `<tr><td class="det" colspan="6"><b>Why:</b> ${f.reasons.length ? esc(f.reasons.join("; ")) : "no disruption factors on this route"}
+        ${h2 ? `<br><b>History:</b><br>${h2}` : ""}</td></tr>`;
+    }
+    return r;
+  }).join("") || `<tr><td colspan="6" class="empty">No flights match.</td></tr>`;
+  $("flights").innerHTML = html + "</tbody>";
+  $("flights").querySelectorAll("th[data-s]").forEach(el => el.onclick = () => {
+    sort = { k: el.dataset.s, d: sort.k === el.dataset.s ? -sort.d : 1 }; renderFlights();
+  });
+  $("flights").querySelectorAll("tr.f").forEach(el => el.onclick = async () => {
+    const no = el.dataset.no;
+    if (open.has(no)) open.delete(no); else { open.add(no); try { hist[no] = await api("/changes?limit=8&flight=" + no); } catch (e) {} }
+    renderFlights(); renderMap(S);
+  });
+}
+
+async function renderLog() {
   const rows = await api("/changes?limit=30");
-  $("log").innerHTML = rows.map(r => `[${new Date(r.ts).toLocaleTimeString()}] <b>${r.flight}</b> → ${r.status}${r.delay ? " +" + r.delay + "m" : ""}`).join("<br>") || "No changes yet";
+  $("log").innerHTML = rows.map(r => `<div style="--c:${css(stTone(r.status))}"><b>${esc(r.flight)}</b> → ${esc(r.status)}${r.delay ? " +" + r.delay + "m" : ""}
+    <br><small>${new Date(r.ts).toLocaleTimeString()}</small></div>`).join("") || `<div class="empty" style="border:0">No changes yet</div>`;
+}
+
+function notify(s) {
+  if (!prev) return;
+  const ch = s.flights.filter(f => prev[f.no] && (prev[f.no].status !== f.status || prev[f.no].delay !== f.delay));
+  ch.slice(0, 3).forEach(f => toast(`<b>${esc(f.no)}</b> ${f.frm}→${f.to}: ${esc(f.status)}${f.delay ? " +" + f.delay + "m" : ""}`, stTone(f.status)));
+  if (ch.length > 3) toast(`+${ch.length - 3} more flight changes`, "acc");
+}
+
+function render(s) {
+  notify(s); S = s;
+  if (firstLoad) { $("simAp").innerHTML = Object.keys(s.airports).map(a => `<option>${a}</option>`).join(""); firstLoad = false; }
+  renderKpis(s.kpis); renderDonut(s.kpis); renderMap(s); renderAirports(s); renderEvents(s); renderChips(); renderFlights();
+  prev = Object.fromEntries(s.flights.map(f => [f.no, { status: f.status, delay: f.delay }]));
 }
 
 async function refresh(s) {
   try {
-    render(s || await api("/state"));
-    await loadChanges();
-    $("updated").textContent = "Synced " + new Date().toLocaleTimeString();
-  } catch (e) { $("updated").textContent = "Backend unreachable: " + e.message; }
+    render(s || await api("/state")); await renderLog();
+    $("dot").classList.remove("off"); $("updated").textContent = "Live · synced " + new Date().toLocaleTimeString();
+  } catch (e) { $("dot").classList.add("off"); $("updated").textContent = "Backend unreachable: " + e.message; }
 }
 async function delEvent(id) { refresh(await api("/events/" + id, "DELETE")); }
 
-$("simGo").onclick = async () => refresh(await api("/simulate", "POST", { airport: $("simAp").value, type: $("simType").value }));
-$("simClear").onclick = async () => refresh(await api("/clear", "POST"));
-$("refresh").onclick = async () => refresh(await api("/refresh", "POST"));
+$("simGo").onclick = async () => { try { refresh(await api("/simulate", "POST", { airport: $("simAp").value, type: $("simType").value })); } catch (e) { toast(esc(e.message), "bad"); } };
+$("simClear").onclick = async () => { refresh(await api("/clear", "POST")); toast("Cleared all simulated data", "ok"); };
+$("refresh").onclick = async () => { $("refresh").disabled = true; try { const r = await api("/refresh", "POST"); toast(esc(r.message), "ok"); refresh(r); } finally { $("refresh").disabled = false; } };
+$("q").oninput = e => { query = e.target.value; if (S) renderFlights(); };
 
 refresh();
-setInterval(refresh, 10000);  // pick up background ingest from the server
+setInterval(refresh, 10000);
 </script>
 </body>
 </html>
